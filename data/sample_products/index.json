@@ -1,0 +1,38 @@
+[
+  {
+    "product_name": "Philips Avent Natural Baby Bottle 260ml",
+    "product_id": "avent-natural-260ml",
+    "file": "avent_bottle.json",
+    "review_count": 50,
+    "expected_verdict": "positive",
+    "expected_confidence": "high",
+    "notes": "Large genuine dataset."
+  },
+  {
+    "product_name": "Graco Modes Travel System Stroller",
+    "product_id": "graco-modes-travel",
+    "file": "graco_stroller.json",
+    "review_count": 30,
+    "expected_verdict": "mixed",
+    "expected_confidence": "high",
+    "notes": "Mixed sentiment dataset."
+  },
+  {
+    "product_name": "BabyBliss Premium Baby Bottle 240ml",
+    "product_id": "babybliss-premium-240ml",
+    "file": "fake_reviews.json",
+    "review_count": 30,
+    "expected_verdict": "insufficient_or_flagged",
+    "expected_confidence": "low",
+    "notes": "Fake review test case."
+  },
+  {
+    "product_name": "NovaBaby Silicone Bottle 150ml",
+    "product_id": "novababy-silicone-150ml",
+    "file": "sparse_reviews.json",
+    "review_count": 3,
+    "expected_verdict": "refused",
+    "expected_confidence": "insufficient",
+    "notes": "Edge case - too few reviews."
+  }
+]

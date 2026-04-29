@@ -1,0 +1,13 @@
+{
+  "product_name": "NovaBaby Silicone Bottle 150ml",
+  "product_id": "novababy-silicone-150ml",
+  "category": "Feeding",
+  "expected_verdict": "refused",
+  "expected_confidence": "insufficient",
+  "notes": "EDGE CASE: Only 3 reviews. Pipeline must refuse and populate refusal_reason.",
+  "reviews": [
+    {"text": "Just received it, seems good so far. Will update after a few weeks of use.", "rating": 4.0, "language": "en", "reviewer_name": "New Mom"},
+    {"text": "My baby likes it.", "rating": 5.0, "language": "en", "reviewer_name": "Fatima A."},
+    {"text": "مناسبة للسعر", "rating": 3.0, "language": "ar", "reviewer_name": "أم خالد"}
+  ]
+}
