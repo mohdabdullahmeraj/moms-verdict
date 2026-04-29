@@ -1,122 +1,284 @@
-import gradio as gr
-import json
-from pathlib import Path
-from src.pipeline import MomsVerdictPipeline
-
-# Initialize the pipeline once globally
-print("Initializing pipeline...")
-pipeline = MomsVerdictPipeline()
-print("Pipeline ready.")
-
-def get_available_products():
-    path = Path("data/sample_products")
-    if not path.exists():
-        return []
-    return [f.name for f in path.glob("*.json")]
-
-def format_pro_con(items):
-    if not items:
-        return "*None reported.*"
-    
-    lines = []
-    for item in items:
-        lines.append(f"**{item.point}** ({item.mention_percentage:.1f}%)")
-        lines.append(f"> *\"{item.evidence.representative_quote}\"*")
-        lines.append("")
-    return "\n".join(lines)
-
-def run_analysis(product_file):
-    if not product_file:
-        return "Please select a product from the dropdown.", "", "", "", "", "", ""
-        
-    file_path = Path("data/sample_products") / product_file
-    
-    try:
-        verdict = pipeline.run_from_file(str(file_path))
-        
-        # Build UI components
-        
-        # Verdicts
-        en_verdict = verdict.verdict_en if verdict.verdict_en else f"*Insufficient Data:* {verdict.refusal_reason}"
-        ar_verdict = f"<div dir='rtl' style='text-align: right; font-size: 1.1em;'>{verdict.verdict_ar}</div>" if verdict.verdict_ar else "<div dir='rtl' style='text-align: right;'>*غير متوفر (بيانات غير كافية)*</div>"
-        
-        # Metrics
-        sentiment = f"**{verdict.overall_sentiment.value.upper()}**"
-        confidence = f"**{verdict.confidence_level.value.upper()}** ({verdict.confidence_score})"
-        
-        if verdict.fake_review_flag.flagged:
-            fake_flag = f"🚨 **FLAGGED** (Similarity: {verdict.fake_review_flag.average_similarity_score:.2f})"
-        else:
-            fake_flag = "✅ **CLEAN**"
-            
-        metrics_md = f"""
-| Sentiment | Confidence | Fake Review Check |
-| :---: | :---: | :---: |
-| {sentiment} | {confidence} | {fake_flag} |
 """
-        
-        # Pros and Cons
-        pros_md = format_pro_con(verdict.pros)
-        cons_md = format_pro_con(verdict.cons)
-        
-        # Themes
-        themes = ", ".join(verdict.themes_identified) if verdict.themes_identified else "None"
-        themes_md = f"**Themes Identified:** {themes}"
-        
-        # Raw JSON for accordion
-        raw_json = verdict.model_dump_json(indent=2)
-        
-        return metrics_md, en_verdict, ar_verdict, pros_md, cons_md, themes_md, raw_json
-        
-    except Exception as e:
-        return f"Error: {str(e)}", "", "", "", "", "", ""
+app.py
 
-# Build Gradio UI
-with gr.Blocks(title="Moms Verdict Pipeline", theme=gr.themes.Soft(primary_hue="rose")) as app:
-    gr.Markdown("# 👩‍🍼 Moms Verdict AI Pipeline")
-    gr.Markdown("Select a product to run the end-to-end review analysis pipeline. The pipeline will clean data, detect fake reviews, cluster by theme, extract structured pros/cons via LLM, validate facts, and generate a native Arabic verdict.")
-    
-    with gr.Row():
-        product_dropdown = gr.Dropdown(
-            choices=get_available_products(),
-            label="Select Product Data",
-            info="Loads JSON files from data/sample_products/"
+Gradio UI for Moms Verdict pipeline.
+Run with: python app.py
+Colab: demo.launch(share=True) gives a public URL.
+"""
+
+import json
+import os
+from pathlib import Path
+import gradio as gr
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from src.pipeline import MomsVerdictPipeline
+from src.schema import ConfidenceLevel
+
+# initialise pipeline once — embedding model loads lazily on first use
+pipeline = MomsVerdictPipeline()
+
+SAMPLE_DIR = Path("data/sample_products")
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def load_sample_products():
+    """Load available sample products from index.json."""
+    index_path = SAMPLE_DIR / "index.json"
+    if not index_path.exists():
+        return {}
+    with open(index_path, encoding="utf-8") as f:
+        index = json.load(f)
+    return {item["product_name"]: item["file"] for item in index}
+
+
+def format_pros_cons(pros, cons):
+    """Format pros and cons into readable text."""
+    lines = []
+    if pros:
+        lines.append("✅ PROS")
+        for p in pros:
+            lines.append(
+                f"  • {p.point}\n"
+                f"    ({p.evidence.mention_count} moms, "
+                f"{p.mention_percentage:.0f}%)\n"
+                f"    \"{p.evidence.representative_quote}\""
+            )
+    if cons:
+        lines.append("\n❌ CONS")
+        for c in cons:
+            lines.append(
+                f"  • {c.point}\n"
+                f"    ({c.evidence.mention_count} moms, "
+                f"{c.mention_percentage:.0f}%)\n"
+                f"    \"{c.evidence.representative_quote}\""
+            )
+    return "\n".join(lines) if lines else "No pros/cons extracted."
+
+
+def confidence_color(level):
+    colors = {
+        "high": "🟢 HIGH",
+        "medium": "🟡 MEDIUM",
+        "low": "🔴 LOW",
+        "insufficient": "⛔ INSUFFICIENT"
+    }
+    return colors.get(level, level)
+
+
+# ---------------------------------------------------------------------------
+# Main pipeline function
+# ---------------------------------------------------------------------------
+
+def run_pipeline(product_name, reviews_json, sample_choice):
+    """
+    Called when the user clicks Generate Verdict.
+    Either uses the typed JSON or loads a sample product.
+    """
+    try:
+        # decide input source
+        if sample_choice and sample_choice != "-- Type your own --":
+            products = load_sample_products()
+            filename = products.get(sample_choice)
+            if filename:
+                filepath = SAMPLE_DIR / filename
+                with open(filepath, encoding="utf-8") as f:
+                    data = json.load(f)
+                product_name = data["product_name"]
+                raw_reviews = data["reviews"]
+            else:
+                return ("Error: sample file not found.",) + ("",) * 6
+        elif reviews_json.strip():
+            try:
+                raw_reviews = json.loads(reviews_json)
+                if not isinstance(raw_reviews, list):
+                    return ("Error: reviews must be a JSON array.",) + ("",) * 6
+            except json.JSONDecodeError as e:
+                return (f"Error parsing JSON: {e}",) + ("",) * 6
+        else:
+            return ("Please select a sample product or paste reviews JSON.",) + ("",) * 6
+
+        if not product_name.strip():
+            return ("Please enter a product name.",) + ("",) * 6
+
+        # run the pipeline
+        verdict = pipeline.run(product_name.strip(), raw_reviews)
+
+        # format outputs
+        if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
+            verdict_en_out = f"⛔ Verdict refused\n\n{verdict.refusal_reason}"
+            verdict_ar_out = ""
+            pros_cons_out = ""
+        else:
+            verdict_en_out = verdict.verdict_en
+            verdict_ar_out = verdict.verdict_ar
+            pros_cons_out = format_pros_cons(verdict.pros, verdict.cons)
+
+        confidence_out = (
+            f"{confidence_color(verdict.confidence_level.value)} — "
+            f"Score: {verdict.confidence_score} | "
+            f"Reviews: {verdict.review_count} | "
+            f"Languages: {verdict.language_breakdown}"
         )
-        run_btn = gr.Button("Run Pipeline", variant="primary")
-        
-    gr.Markdown("---")
-    
-    metrics_out = gr.Markdown()
-    
-    with gr.Row():
-        with gr.Column():
-            gr.Markdown("### 🇬🇧 English Verdict")
-            en_verdict_out = gr.Markdown()
-        with gr.Column():
-            gr.Markdown("<h3 dir='rtl' style='text-align: right;'>الخلاصة بالعربية 🇸🇦</h3>")
-            ar_verdict_out = gr.HTML()
-            
-    gr.Markdown("---")
-    
-    with gr.Row():
-        with gr.Column():
-            gr.Markdown("### ✅ Top Pros (Grounded)")
-            pros_out = gr.Markdown()
-        with gr.Column():
-            gr.Markdown("### ❌ Top Cons (Grounded)")
-            cons_out = gr.Markdown()
-            
-    themes_out = gr.Markdown()
-    
-    with gr.Accordion("View Raw JSON Output", open=False):
-        raw_json_out = gr.Code(language="json")
-        
-    # Wire up the button
-    run_btn.click(
-        fn=run_analysis,
-        inputs=[product_dropdown],
-        outputs=[metrics_out, en_verdict_out, ar_verdict_out, pros_out, cons_out, themes_out, raw_json_out]
-    )
+
+        fake_out = (
+            f"⚠️ FLAGGED — {verdict.fake_review_flag.reason}"
+            if verdict.fake_review_flag.flagged
+            else f"✅ Reviews appear genuine "
+                 f"(similarity score: "
+                 f"{verdict.fake_review_flag.average_similarity_score:.3f})"
+        )
+
+        themes_out = (
+            ", ".join(verdict.themes_identified)
+            if verdict.themes_identified
+            else "None identified"
+        )
+
+        raw_out = verdict.model_dump_json(indent=2)
+
+        return (
+            verdict_en_out,
+            verdict_ar_out,
+            pros_cons_out,
+            confidence_out,
+            fake_out,
+            themes_out,
+            raw_out
+        )
+
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        return (
+            f"Pipeline error: {e}",
+            "", "", "", "", "",
+            error_detail
+        )
+
+
+# ---------------------------------------------------------------------------
+# Gradio UI
+# ---------------------------------------------------------------------------
+
+def build_ui():
+    sample_products = load_sample_products()
+    sample_choices = ["-- Type your own --"] + list(sample_products.keys())
+
+    with gr.Blocks(
+        title="Moms Verdict — Mumzworld Review Intelligence",
+        theme=gr.themes.Soft()
+    ) as demo:
+
+        gr.Markdown("""
+        # 🌸 Moms Verdict
+        ### AI-powered review synthesis for Mumzworld
+        *Reads every review. Writes the verdict moms actually need.*
+        ---
+        """)
+
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("### Input")
+
+                sample_dropdown = gr.Dropdown(
+                    choices=sample_choices,
+                    value=sample_choices[0],
+                    label="Load a sample product",
+                    info="Select a pre-loaded product or type your own below"
+                )
+
+                product_input = gr.Textbox(
+                    label="Product Name",
+                    placeholder="e.g. Philips Avent Natural Baby Bottle 260ml",
+                    lines=1
+                )
+
+                reviews_input = gr.Textbox(
+                    label="Reviews JSON (if not using sample)",
+                    placeholder='[{"text": "Great bottle!", "rating": 5.0, "language": "en"}, ...]',
+                    lines=8,
+                    info="Paste a JSON array of reviews. Each needs: text, rating, language."
+                )
+
+                run_btn = gr.Button(
+                    "🔍 Generate Verdict",
+                    variant="primary",
+                    size="lg"
+                )
+
+            with gr.Column(scale=2):
+                gr.Markdown("### Output")
+
+                with gr.Row():
+                    verdict_en = gr.Textbox(
+                        label="Verdict (English)",
+                        lines=4,
+                        interactive=False
+                    )
+                    verdict_ar = gr.Textbox(
+                        label="الحكم (Arabic)",
+                        lines=4,
+                        interactive=False,
+                        rtl=True
+                    )
+
+                pros_cons = gr.Textbox(
+                    label="Pros & Cons (Grounded)",
+                    lines=10,
+                    interactive=False
+                )
+
+                confidence_out = gr.Textbox(
+                    label="Confidence",
+                    interactive=False
+                )
+
+                fake_out = gr.Textbox(
+                    label="Review Authenticity",
+                    interactive=False
+                )
+
+                themes_out = gr.Textbox(
+                    label="Themes Identified",
+                    interactive=False
+                )
+
+        with gr.Accordion("Raw JSON Output", open=False):
+            raw_json = gr.Code(
+                label="Full MomsVerdict JSON",
+                language="json",
+                interactive=False
+            )
+
+        gr.Markdown("""
+        ---
+        **How it works:** Reviews → Fake detection → Theme clustering →
+        Structured extraction → Confidence scoring → Native Arabic generation
+        """)
+
+        run_btn.click(
+            fn=run_pipeline,
+            inputs=[product_input, reviews_input, sample_dropdown],
+            outputs=[
+                verdict_en, verdict_ar, pros_cons,
+                confidence_out, fake_out, themes_out, raw_json
+            ]
+        )
+
+    return demo
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    app.launch(share=True)
+    demo = build_ui()
+    # share=True gives a public URL in Colab
+    demo.launch(share=True)

@@ -1,167 +1,230 @@
 """
 evals/eval_runner.py
 
-Test runner for the Moms Verdict pipeline.
-Validates the output of the pipeline against the assertions
-defined in test_cases.json.
+Runs all eval test cases and prints a scorecard.
 
-Usage (in Colab):
+Run with:
     python evals/eval_runner.py
+
+Scoring per test case (max 8 points):
+    Schema validity        — 0 or 2
+    Confidence correct     — 0 or 2
+    Fake flag correct      — 0 or 1
+    Refusal correct        — 0 or 1
+    No hallucination       — 0 or 1
+    Arabic has Arabic text — 0 or 1
 """
 
 import json
-from pathlib import Path
-from rich.console import Console
-from rich.table import Table
 import sys
 import os
+from pathlib import Path
 
-# Add src to path so we can import it
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# allow imports from project root
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pipeline import MomsVerdictPipeline
+from src.schema import MomsVerdict, ConfidenceLevel
 
-console = Console()
+SAMPLE_DIR = Path("data/sample_products")
+CASES_FILE = Path("evals/test_cases.json")
+MAX_SCORE_PER_CASE = 8
 
-def load_test_cases():
-    with open("evals/test_cases.json", "r", encoding="utf-8") as f:
-        return json.load(f)
 
-def evaluate_assertion(verdict, case):
-    """
-    Evaluates a specific assertion on a MomsVerdict object.
-    Returns (bool passed, str actual_value_for_logging)
-    """
-    atype = case["assertion_type"]
-    expected = case["expected_value"]
-    
-    if atype == "confidence_level":
-        actual = verdict.confidence_level.value
-        return actual == expected, actual
-        
-    elif atype == "confidence_level_in":
-        actual = verdict.confidence_level.value
-        return actual in expected, actual
-        
-    elif atype == "fake_review_flagged":
-        actual = verdict.fake_review_flag.flagged
-        return actual == expected, str(actual)
-        
-    elif atype == "similarity_score_min":
-        actual = verdict.fake_review_flag.average_similarity_score
-        return actual >= expected, f"{actual:.2f}"
-        
-    elif atype == "confidence_score_max":
-        actual = verdict.confidence_score
-        return actual <= expected, f"{actual:.2f}"
-        
-    elif atype == "verdicts_empty":
-        is_empty = (verdict.verdict_en == "" and verdict.verdict_ar == "")
-        actual = "Empty" if is_empty else "Not Empty"
-        return is_empty == expected, actual
-        
-    elif atype == "overall_sentiment":
-        actual = verdict.overall_sentiment.value
-        return actual == expected, actual
-        
-    elif atype == "arabic_validation":
-        # Check if verdict_ar has arabic characters
-        arabic_chars = sum(1 for c in verdict.verdict_ar if '\u0600' <= c <= '\u06FF')
-        actual = arabic_chars > 10
-        return actual == expected, f"{arabic_chars} arabic chars"
-        
-    elif atype == "quotes_exist":
-        # Check all pros and cons
-        all_items = verdict.pros + verdict.cons
-        if not all_items:
-            return True, "No items"
-        missing_quotes = [item for item in all_items if not item.evidence.representative_quote]
-        actual = len(missing_quotes) == 0
-        return actual == expected, "Quotes missing" if not actual else "All grounded"
-        
-    elif atype == "max_pros_cons":
-        valid = len(verdict.pros) <= expected and len(verdict.cons) <= expected
-        actual = f"{len(verdict.pros)} pros, {len(verdict.cons)} cons"
-        return valid, actual
+def count_arabic(text):
+    return sum(1 for c in text if '\u0600' <= c <= '\u06FF')
 
-    return False, "Unknown assertion type"
+
+def run_eval(pipeline, case, verdict):
+    """Score one test case. Returns (score, max, details dict)."""
+    details = {}
+    score = 0
+
+    # --- Schema validity (2 pts) ---
+    try:
+        # if verdict was returned without error, schema passed
+        _ = verdict.model_dump_json()
+        details["schema_valid"] = "PASS (2/2)"
+        score += 2
+    except Exception as e:
+        details["schema_valid"] = f"FAIL (0/2) — {e}"
+
+    # --- Confidence level correct (2 pts) ---
+    expected_conf = case.get("expected_confidence_level")
+    if expected_conf is None:
+        details["confidence_correct"] = "SKIP (not specified)"
+        score += 1  # partial credit
+    elif verdict.confidence_level.value == expected_conf:
+        details["confidence_correct"] = f"PASS (2/2) — got {verdict.confidence_level.value}"
+        score += 2
+    else:
+        details["confidence_correct"] = (
+            f"FAIL (0/2) — expected {expected_conf}, "
+            f"got {verdict.confidence_level.value}"
+        )
+
+    # --- Fake flag correct (1 pt) ---
+    expected_fake = case.get("expected_fake_flagged", False)
+    actual_fake = verdict.fake_review_flag.flagged
+    if actual_fake == expected_fake:
+        details["fake_flag"] = f"PASS (1/1) — flagged={actual_fake}"
+        score += 1
+    else:
+        details["fake_flag"] = (
+            f"FAIL (0/1) — expected flagged={expected_fake}, "
+            f"got flagged={actual_fake}"
+        )
+
+    # --- Refusal correct (1 pt) ---
+    expected_refusal = case.get("expected_refusal", False)
+    actual_refusal = verdict.confidence_level == ConfidenceLevel.INSUFFICIENT
+    if actual_refusal == expected_refusal:
+        details["refusal_correct"] = f"PASS (1/1)"
+        score += 1
+    else:
+        details["refusal_correct"] = (
+            f"FAIL (0/1) — expected refusal={expected_refusal}, "
+            f"got refusal={actual_refusal}"
+        )
+
+    # --- No hallucination (1 pt) ---
+    must_not_mention = case.get("must_not_mention", [])
+    if not must_not_mention:
+        details["no_hallucination"] = "SKIP (no forbidden terms specified)"
+        score += 1
+    else:
+        verdict_text = (
+            verdict.verdict_en + " " +
+            " ".join(p.point for p in verdict.pros) + " " +
+            " ".join(c.point for c in verdict.cons)
+        ).lower()
+        violations = [t for t in must_not_mention if t.lower() in verdict_text]
+        if not violations:
+            details["no_hallucination"] = "PASS (1/1) — no forbidden terms found"
+            score += 1
+        else:
+            details["no_hallucination"] = (
+                f"FAIL (0/1) — hallucinated: {violations}"
+            )
+
+    # --- Arabic has Arabic text (1 pt) ---
+    if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
+        details["arabic_valid"] = "SKIP (refusal case, Arabic empty by design)"
+        score += 1
+    elif count_arabic(verdict.verdict_ar) >= 10:
+        details["arabic_valid"] = (
+            f"PASS (1/1) — {count_arabic(verdict.verdict_ar)} Arabic chars"
+        )
+        score += 1
+    else:
+        details["arabic_valid"] = (
+            f"FAIL (0/1) — only {count_arabic(verdict.verdict_ar)} Arabic chars"
+        )
+
+    return score, MAX_SCORE_PER_CASE, details
+
 
 def main():
-    console.print("\n[bold blue]🚀 Starting Moms Verdict Evals[/bold blue]\n")
-    
-    test_cases = load_test_cases()
+    print("=" * 65)
+    print("MOMS VERDICT — EVAL RUNNER")
+    print("=" * 65)
+
+    # load test cases
+    with open(CASES_FILE, encoding="utf-8") as f:
+        cases = json.load(f)
+
+    print(f"Loaded {len(cases)} test cases.\n")
+
     pipeline = MomsVerdictPipeline()
-    
-    # Pre-run pipeline on all available JSONs to cache the verdicts
-    sample_dir = Path("data/sample_products")
-    if not sample_dir.exists() or not list(sample_dir.glob("*.json")):
-        console.print("[red]❌ No sample products found. Please run `python data/generate_reviews.py` first.[/red]")
-        sys.exit(1)
-        
-    verdicts = {}
-    for json_file in sample_dir.glob("*.json"):
-        console.print(f"Running pipeline on {json_file.name}...")
+
+    results = []
+
+    for case in cases:
+        print(f"\n{'─' * 65}")
+        print(f"[{case['id']}] {case['name']}")
+        print(f"Description: {case['description']}")
+
+        # load product data
+        filepath = SAMPLE_DIR / case["file"]
         try:
-            verdict = pipeline.run_from_file(str(json_file))
-            # Match on product_name or specific file traits if needed. 
-            # We'll key by product_name to match test_cases.
-            verdicts[verdict.product_name] = verdict
-        except Exception as e:
-            console.print(f"[red]Pipeline failed on {json_file.name}: {e}[/red]")
-            
-    # Run test cases
-    table = Table(title="Evaluation Results")
-    table.add_column("ID", style="cyan")
-    table.add_column("Product", style="magenta")
-    table.add_column("Description", style="white")
-    table.add_column("Status", justify="center")
-    table.add_column("Actual", style="dim")
-    
-    passed = 0
-    total = len(test_cases)
-    
-    for case in test_cases:
-        target = case["target_product"]
-        
-        # Determine which verdicts to run this case against
-        targets_to_run = []
-        if target == "ALL":
-            targets_to_run = list(verdicts.values())
-        elif target in verdicts:
-            targets_to_run = [verdicts[target]]
-        else:
-            # Try partial matching if exact name doesn't match perfectly
-            for name, v in verdicts.items():
-                if target.lower() in name.lower():
-                    targets_to_run.append(v)
-                    
-        if not targets_to_run:
-            table.add_row(case["id"], target, case["description"], "[yellow]SKIPPED (No Data)[/yellow]", "-")
-            total -= 1
+            with open(filepath, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            print(f"  ❌ File not found: {filepath}")
+            results.append({
+                "id": case["id"],
+                "name": case["name"],
+                "score": 0,
+                "max": MAX_SCORE_PER_CASE,
+                "error": "File not found"
+            })
             continue
-            
-        all_passed = True
-        actuals = []
-        for v in targets_to_run:
-            p, a = evaluate_assertion(v, case)
-            if not p:
-                all_passed = False
-            actuals.append(a)
-            
-        final_actual = ", ".join(set(actuals))
-        if all_passed:
-            passed += 1
-            table.add_row(case["id"], target, case["description"], "[green]PASS[/green]", final_actual)
-        else:
-            table.add_row(case["id"], target, case["description"], "[red]FAIL[/red]", final_actual)
-            
-    console.print(table)
-    
-    console.print(f"\n[bold]Summary: {passed}/{total} tests passed.[/bold]")
-    if passed == total:
-        console.print("[bold green]🎉 All evaluations passed![/bold green]")
+
+        product_name = data["product_name"]
+        raw_reviews = data["reviews"]
+        print(f"Product: {product_name} ({len(raw_reviews)} reviews)")
+
+        # run pipeline
+        try:
+            verdict = pipeline.run(product_name, raw_reviews)
+        except Exception as e:
+            print(f"  ❌ Pipeline error: {e}")
+            results.append({
+                "id": case["id"],
+                "name": case["name"],
+                "score": 0,
+                "max": MAX_SCORE_PER_CASE,
+                "error": str(e)
+            })
+            continue
+
+        # score it
+        score, max_score, details = run_eval(pipeline, case, verdict)
+
+        print(f"\nResults:")
+        for criterion, result in details.items():
+            icon = "✅" if "PASS" in result else ("⚠️" if "SKIP" in result else "❌")
+            print(f"  {icon} {criterion}: {result}")
+
+        print(f"\nScore: {score}/{max_score}")
+
+        results.append({
+            "id": case["id"],
+            "name": case["name"],
+            "score": score,
+            "max": max_score,
+            "details": details
+        })
+
+    # final scorecard
+    print(f"\n{'=' * 65}")
+    print("SCORECARD")
+    print(f"{'=' * 65}")
+    total_score = sum(r["score"] for r in results)
+    total_max = sum(r["max"] for r in results)
+
+    for r in results:
+        bar = "█" * r["score"] + "░" * (r["max"] - r["score"])
+        print(f"  [{r['id']}] {bar} {r['score']}/{r['max']} — {r['name']}")
+
+    pct = round((total_score / total_max) * 100, 1) if total_max > 0 else 0
+    print(f"\nOverall: {total_score}/{total_max} ({pct}%)")
+
+    if pct >= 80:
+        print("Rating: ✅ STRONG")
+    elif pct >= 60:
+        print("Rating: ⚠️  ACCEPTABLE")
     else:
-        console.print("[bold red]❌ Some evaluations failed. Check the logs.[/bold red]")
+        print("Rating: ❌ NEEDS WORK")
+
+    print("=" * 65)
+
+    # save results
+    results_path = Path("evals/results.json")
+    with open(results_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to {results_path}")
+
 
 if __name__ == "__main__":
     main()

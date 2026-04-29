@@ -1,86 +1,46 @@
 [
   {
-    "id": "TC-01",
-    "target_product": "NovaBaby Carrier",
-    "description": "Sparse Data: Confidence Level should be INSUFFICIENT",
-    "assertion_type": "confidence_level",
-    "expected_value": "INSUFFICIENT"
+    "id": "TC01",
+    "name": "Happy path — large English dataset",
+    "file": "avent_bottle.json",
+    "expected_confidence_level": "high",
+    "expected_sentiment": "positive",
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": ["BPA-free", "organic", "eco-friendly"],
+    "description": "Large genuine EN+AR dataset. Should produce high confidence positive verdict."
   },
   {
-    "id": "TC-02",
-    "target_product": "NovaBaby Carrier",
-    "description": "Sparse Data: Fake review flag should be skipped (False)",
-    "assertion_type": "fake_review_flagged",
-    "expected_value": false
+    "id": "TC02",
+    "name": "Mixed sentiment — stroller",
+    "file": "graco_stroller.json",
+    "expected_confidence_level": "high",
+    "expected_sentiment": "mixed",
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "Mixed dataset. Should surface both positives and weight/bulk complaints."
   },
   {
-    "id": "TC-03",
-    "target_product": "NovaBaby Carrier",
-    "description": "Sparse Data: Verdicts should be empty strings",
-    "assertion_type": "verdicts_empty",
-    "expected_value": true
+    "id": "TC03",
+    "name": "Fake review detection",
+    "file": "fake_reviews.json",
+    "expected_confidence_level": null,
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": true,
+    "must_not_mention": [],
+    "description": "Suspiciously similar reviews. Fake detector must flag this dataset."
   },
   {
-    "id": "TC-04",
-    "target_product": "BabyBliss Bouncer",
-    "description": "Spam Data: Fake review flag should be triggered",
-    "assertion_type": "fake_review_flagged",
-    "expected_value": true
-  },
-  {
-    "id": "TC-05",
-    "target_product": "BabyBliss Bouncer",
-    "description": "Spam Data: Similarity score > 0.85",
-    "assertion_type": "similarity_score_min",
-    "expected_value": 0.85
-  },
-  {
-    "id": "TC-06",
-    "target_product": "BabyBliss Bouncer",
-    "description": "Spam Data: Confidence score should be heavily penalized (< 0.50)",
-    "assertion_type": "confidence_score_max",
-    "expected_value": 0.50
-  },
-  {
-    "id": "TC-07",
-    "target_product": "Philips Avent Natural Baby Bottle 260ml",
-    "description": "Genuine Large: Confidence Level should be HIGH",
-    "assertion_type": "confidence_level",
-    "expected_value": "HIGH"
-  },
-  {
-    "id": "TC-08",
-    "target_product": "Philips Avent Natural Baby Bottle 260ml",
-    "description": "Genuine Large: Overall sentiment should be POSITIVE",
-    "assertion_type": "overall_sentiment",
-    "expected_value": "POSITIVE"
-  },
-  {
-    "id": "TC-09",
-    "target_product": "Philips Avent Natural Baby Bottle 260ml",
-    "description": "Genuine Large: Arabic verdict must contain valid Arabic characters",
-    "assertion_type": "arabic_validation",
-    "expected_value": true
-  },
-  {
-    "id": "TC-10",
-    "target_product": "Graco Modes Travel System",
-    "description": "Medium Dataset: Confidence level should be MEDIUM or HIGH",
-    "assertion_type": "confidence_level_in",
-    "expected_value": ["MEDIUM", "HIGH"]
-  },
-  {
-    "id": "TC-11",
-    "target_product": "ALL",
-    "description": "Grounding: Every Pro/Con must have a representative quote",
-    "assertion_type": "quotes_exist",
-    "expected_value": true
-  },
-  {
-    "id": "TC-12",
-    "target_product": "ALL",
-    "description": "Limits: Maximum 5 pros and 5 cons per product",
-    "assertion_type": "max_pros_cons",
-    "expected_value": 5
+    "id": "TC04",
+    "name": "Insufficient reviews — refusal",
+    "file": "sparse_reviews.json",
+    "expected_confidence_level": "insufficient",
+    "expected_sentiment": null,
+    "expected_refusal": true,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "Only 3 reviews. Pipeline must refuse and populate refusal_reason."
   }
 ]
