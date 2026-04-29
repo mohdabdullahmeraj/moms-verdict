@@ -24,7 +24,7 @@ client = openai.OpenAI(
     }
 )
 
-ARABIC_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+ARABIC_MODEL = os.environ.get("ARABIC_MODEL", "google/gemma-3-27b-it:free")
 MIN_ARABIC_CHARS = 10
 MAX_RETRIES = 3
 RETRY_DELAY_SECONDS = 10
