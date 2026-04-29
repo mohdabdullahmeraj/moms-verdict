@@ -1,0 +1,9 @@
+.dockerignore
+.env
+.git
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+*.egg-info
+.DS_Store

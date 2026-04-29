@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+
+  app:
+    build: .
+    container_name: moms-verdict-app
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./evals:/app/evals
+    command: python app.py
+    restart: unless-stopped
+
+  evals:
+    build: .
+    container_name: moms-verdict-evals
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./evals:/app/evals
+    command: python evals/eval_runner.py
+    profiles:
+      - evals
+
+  generate-data:
+    build: .
+    container_name: moms-verdict-datagen
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    command: python data/generate_reviews.py
+    profiles:
+      - datagen

@@ -1,0 +1,24 @@
+# LLM
+google-generativeai==0.7.2
+
+# Embeddings (local, no API needed)
+sentence-transformers==3.0.1
+
+# ML / clustering
+scikit-learn==1.5.1
+numpy==1.26.4
+
+# Schema validation
+pydantic==2.7.4
+pydantic-settings==2.3.4
+
+# UI
+gradio==4.37.2
+
+# Testing / evals
+pytest==8.2.2
+pytest-asyncio==0.23.7
+
+# Utilities
+python-dotenv==1.0.1
+rich==13.7.1
