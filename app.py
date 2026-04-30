@@ -128,52 +128,62 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
 CSS = """
 /* ── Base ── */
 body, .gradio-container {
-    background-color: #fafafa !important;
+    background-color: #f4f4f0 !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: #0f172a !important;
+    color: #111111 !important;
 }
 
 /* ── Header ── */
 .app-header {
     padding: 2.5rem 0 1.5rem 0;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 3px solid #111111;
     margin-bottom: 2rem;
 }
 .app-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #0f172a;
-    letter-spacing: -0.5px;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #111111;
+    text-transform: uppercase;
+    letter-spacing: -1px;
     margin: 0;
 }
 .app-subtitle {
-    font-size: 0.9rem;
-    color: #475569;
-    margin-top: 0.3rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111111;
+    margin-top: 0.5rem;
 }
 .app-tagline {
-    font-size: 0.85rem;
-    color: #7c3aed;
-    font-weight: 500;
-    margin-top: 0.2rem;
+    font-size: 0.9rem;
+    color: #111111;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    background: #ffdb58; /* Mustard yellow accent */
+    display: inline-block;
+    padding: 4px 10px;
+    border: 2px solid #111111;
+    box-shadow: 2px 2px 0px #111111;
 }
 
 /* ── Cards ── */
 .card {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
+    border: 3px solid #111111 !important;
+    border-radius: 0px !important;
+    box-shadow: 4px 4px 0px #111111 !important;
     padding: 1.25rem !important;
 }
 
 /* ── Section labels ── */
 .section-label {
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #64748b;
+    color: #111111;
     margin-bottom: 0.5rem;
+    display: inline-block;
+    border-bottom: 2px solid #111111;
 }
 
 /* ── Inputs ── */
@@ -181,49 +191,56 @@ body, .gradio-container {
 .gradio-container textarea,
 .gradio-container select {
     background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    color: #0f172a !important;
-    font-size: 0.9rem !important;
+    border: 2px solid #111111 !important;
+    border-radius: 0px !important;
+    color: #111111 !important;
+    font-size: 0.95rem !important;
+    box-shadow: 2px 2px 0px #111111 !important;
 }
 .gradio-container input:focus,
 .gradio-container textarea:focus {
-    border-color: #8b5cf6 !important;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15) !important;
+    outline: none !important;
+    background: #f0f8ff !important;
 }
 
 /* ── Dropdown ── */
 .gradio-container .wrap {
     background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
+    border: 2px solid #111111 !important;
+    border-radius: 0px !important;
+    box-shadow: 2px 2px 0px #111111 !important;
 }
 
 /* ── Button ── */
 .generate-btn {
-    background: #0f172a !important;
-    border: none !important;
-    border-radius: 8px !important;
-    color: white !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    padding: 0.75rem 1.5rem !important;
+    background: #ff5e5e !important;
+    border: 3px solid #111111 !important;
+    border-radius: 0px !important;
+    color: #111111 !important;
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    text-transform: uppercase !important;
+    padding: 0.85rem 1.5rem !important;
     width: 100% !important;
     cursor: pointer !important;
-    transition: opacity 0.2s !important;
+    box-shadow: 5px 5px 0px #111111 !important;
+    transition: all 0.1s ease !important;
 }
-.generate-btn:hover {
-    opacity: 0.85 !important;
+.generate-btn:active {
+    box-shadow: 0px 0px 0px #111111 !important;
+    transform: translate(5px, 5px) !important;
 }
 
 /* ── Output textboxes ── */
 .gradio-container .output-textbox textarea {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    color: #0f172a !important;
-    font-size: 0.88rem !important;
+    border: 2px solid #111111 !important;
+    border-radius: 0px !important;
+    box-shadow: 3px 3px 0px #111111 !important;
+    color: #111111 !important;
+    font-size: 0.9rem !important;
     line-height: 1.6 !important;
+    font-weight: 500 !important;
 }
 
 /* ── Arabic field ── */
@@ -231,49 +248,44 @@ body, .gradio-container {
     direction: rtl !important;
     text-align: right !important;
     font-family: 'Noto Sans Arabic', 'Arial', sans-serif !important;
-    font-size: 0.95rem !important;
+    font-size: 1rem !important;
     line-height: 1.8 !important;
 }
 
 /* ── Labels ── */
 .gradio-container label span {
-    color: #64748b !important;
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
+    color: #111111 !important;
+    font-size: 0.8rem !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.8px !important;
+    letter-spacing: 0.5px !important;
 }
 
 /* ── Accordion ── */
 .gradio-container .accordion {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
+    border: 2px solid #111111 !important;
+    border-radius: 0px !important;
+    box-shadow: 3px 3px 0px #111111 !important;
 }
 
 /* ── Divider ── */
 .divider {
     border: none;
-    border-top: 1px solid #e2e8f0;
+    border-top: 3px solid #111111;
     margin: 1.5rem 0;
-}
-
-/* ── Status pills ── */
-.status-row {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
 }
 
 /* ── Footer ── */
 .footer {
     text-align: center;
-    color: #94a3b8;
-    font-size: 0.78rem;
+    color: #111111;
+    font-weight: 800;
+    font-size: 0.8rem;
     padding: 1.5rem 0;
-    border-top: 1px solid #e2e8f0;
+    border-top: 3px solid #111111;
     margin-top: 2rem;
+    text-transform: uppercase;
 }
 
 /* hide gradio footer */
