@@ -218,8 +218,13 @@ body, .gradio-container {
     font-size: 0.95rem !important;
     box-shadow: 2px 2px 0px #111111 !important;
 }
+.gradio-container select {
+    color: #111111 !important; /* Force dropdown text to be visible */
+    -webkit-appearance: none; /* Remove default dropdown styling that might override color */
+}
 .gradio-container input:focus,
-.gradio-container textarea:focus {
+.gradio-container textarea:focus,
+.gradio-container select:focus {
     outline: none !important;
     background: #f0f8ff !important;
 }
@@ -230,11 +235,15 @@ body, .gradio-container {
     border: 2px solid #111111 !important;
     border-radius: 0px !important;
     box-shadow: 2px 2px 0px #111111 !important;
+    color: #111111 !important;
+}
+.gradio-container .wrap-inner {
+    color: #111111 !important;
 }
 
 /* ── Button ── */
 .generate-btn {
-    background: #ff5e5e !important;
+    background: #E50056 !important;
     border: 3px solid #111111 !important;
     border-radius: 0px !important;
     color: #111111 !important;
@@ -242,7 +251,8 @@ body, .gradio-container {
     font-size: 1rem !important;
     text-transform: uppercase !important;
     padding: 0.85rem 1.5rem !important;
-    width: 100% !important;
+    width: calc(100% - 10px) !important;
+    margin: 0 5px 10px 5px !important;
     cursor: pointer !important;
     box-shadow: 5px 5px 0px #111111 !important;
     transition: all 0.1s ease !important;
@@ -388,7 +398,7 @@ def build_ui():
                         gr.HTML('<div class="section-label">Verdict — English</div>')
                         verdict_en = gr.Textbox(
                             label="",
-                            lines=5,
+                            max_lines=99,
                             interactive=False,
                             elem_classes=["output-textbox"]
                         )
@@ -396,7 +406,7 @@ def build_ui():
                         gr.HTML('<div class="section-label">الحكم — Arabic</div>')
                         verdict_ar = gr.Textbox(
                             label="",
-                            lines=5,
+                            max_lines=99,
                             interactive=False,
                             elem_classes=["output-textbox", "arabic-field"]
                         )
@@ -404,7 +414,7 @@ def build_ui():
                 gr.HTML('<div class="section-label" style="margin-top:1rem">Pros & Cons — Grounded in Reviews</div>')
                 pros_cons = gr.Textbox(
                     label="",
-                    lines=12,
+                    max_lines=99,
                     interactive=False,
                     elem_classes=["output-textbox"]
                 )
@@ -414,6 +424,7 @@ def build_ui():
                         gr.HTML('<div class="section-label">Confidence</div>')
                         confidence_out = gr.Textbox(
                             label="",
+                            max_lines=99,
                             interactive=False,
                             elem_classes=["output-textbox"]
                         )
@@ -421,6 +432,7 @@ def build_ui():
                         gr.HTML('<div class="section-label">Review Authenticity</div>')
                         fake_out = gr.Textbox(
                             label="",
+                            max_lines=99,
                             interactive=False,
                             elem_classes=["output-textbox"]
                         )
@@ -428,6 +440,7 @@ def build_ui():
                 gr.HTML('<div class="section-label" style="margin-top:0.75rem">Themes Identified</div>')
                 themes_out = gr.Textbox(
                     label="",
+                    max_lines=99,
                     interactive=False,
                     elem_classes=["output-textbox"]
                 )
