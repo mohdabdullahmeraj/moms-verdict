@@ -1,0 +1,170 @@
+[
+  {
+    "id": "TC01",
+    "name": "Happy path \u2014 large English dataset",
+    "score": 8,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "PASS (2/2) \u2014 got high",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "PASS (1/1) \u2014 no forbidden terms found",
+      "arabic_valid": "PASS (1/1) \u2014 248 Arabic chars"
+    }
+  },
+  {
+    "id": "TC02",
+    "name": "Mixed sentiment \u2014 stroller",
+    "score": 7,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "SKIP (not specified)",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 218 Arabic chars"
+    }
+  },
+  {
+    "id": "TC03",
+    "name": "Fake review detection",
+    "score": 7,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "SKIP (not specified)",
+      "fake_flag": "PASS (1/1) \u2014 flagged=True",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 181 Arabic chars"
+    }
+  },
+  {
+    "id": "TC04",
+    "name": "Insufficient reviews \u2014 refusal",
+    "score": 8,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "PASS (2/2) \u2014 got insufficient",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "SKIP (refusal case)"
+    }
+  },
+  {
+    "id": "TC05",
+    "name": "Hallucination check \u2014 BPA-free not mentioned",
+    "score": 8,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "PASS (2/2) \u2014 got high",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "PASS (1/1) \u2014 no forbidden terms found",
+      "arabic_valid": "PASS (1/1) \u2014 203 Arabic chars"
+    }
+  },
+  {
+    "id": "TC06",
+    "name": "Empty reviews list \u2014 explicit error",
+    "score": 8,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "PASS (2/2) \u2014 got insufficient",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "SKIP (refusal case)"
+    }
+  },
+  {
+    "id": "TC07",
+    "name": "Borderline volume \u2014 6 reviews",
+    "score": 6,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "FAIL (0/2) \u2014 expected low, got medium",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 143 Arabic chars"
+    }
+  },
+  {
+    "id": "TC08",
+    "name": "Rating-text mismatch detection",
+    "score": 7,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "SKIP (not specified)",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 208 Arabic chars"
+    }
+  },
+  {
+    "id": "TC09",
+    "name": "Native Arabic reviews only",
+    "score": 6,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "FAIL (0/2) \u2014 expected low, got medium",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 193 Arabic chars"
+    }
+  },
+  {
+    "id": "TC10",
+    "name": "Contradictory reviews on same topic",
+    "score": 7,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "SKIP (not specified)",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 176 Arabic chars"
+    }
+  },
+  {
+    "id": "TC11",
+    "name": "Very short reviews edge case",
+    "score": 6,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "FAIL (0/2) \u2014 expected low, got medium",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 137 Arabic chars"
+    }
+  },
+  {
+    "id": "TC12",
+    "name": "High volume \u2014 theme richness",
+    "score": 8,
+    "max": 8,
+    "details": {
+      "schema_valid": "PASS (2/2)",
+      "confidence_correct": "PASS (2/2) \u2014 got high",
+      "fake_flag": "PASS (1/1) \u2014 flagged=False",
+      "refusal_correct": "PASS (1/1)",
+      "no_hallucination": "SKIP (no forbidden terms)",
+      "arabic_valid": "PASS (1/1) \u2014 273 Arabic chars"
+    }
+  }
+]
