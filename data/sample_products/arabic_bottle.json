@@ -1,0 +1,18 @@
+{
+  "product_name": "Philips Avent زجاجة طبيعية",
+  "product_id": "avent-arabic-only",
+  "category": "Feeding",
+  "expected_verdict": "positive",
+  "expected_confidence": "medium",
+  "notes": "Native Arabic reviews test. Validates the Arabic generation stage.",
+  "reviews": [
+    {"text": "ممتازة جداً وابني تقبلها بسهولة", "rating": 5.0, "language": "ar", "reviewer_name": "أم محمد"},
+    {"text": "أفضل رضّاعة جربتها، لا تسبب غازات للطفل", "rating": 5.0, "language": "ar", "reviewer_name": "سارة"},
+    {"text": "جودة عالية وسهلة التنظيف، أنصح بها بشدة", "rating": 5.0, "language": "ar", "reviewer_name": "نورة"},
+    {"text": "حجمها مناسب ولكن الحلمة تدفقها سريع قليلاً", "rating": 4.0, "language": "ar", "reviewer_name": "أم خالد"},
+    {"text": "راضية جداً عن المنتج، يستحق السعر", "rating": 5.0, "language": "ar", "reviewer_name": "هدى"},
+    {"text": "ممتازة ولكن السعر مرتفع مقارنة بالأنواع الأخرى", "rating": 4.0, "language": "ar", "reviewer_name": "ريم"},
+    {"text": "لم تعجب طفلي ورفض الشرب منها", "rating": 2.0, "language": "ar", "reviewer_name": "أم علي"},
+    {"text": "منتج أصلي ورائع، التغليف كان ممتاز", "rating": 5.0, "language": "ar", "reviewer_name": "فاطمة"}
+  ]
+}

@@ -34,5 +34,14 @@
     "expected_verdict": "refused",
     "expected_confidence": "insufficient",
     "notes": "Edge case - too few reviews."
+  },
+  {
+    "product_name": "Philips Avent زجاجة طبيعية (Arabic Only)",
+    "product_id": "avent-arabic-only",
+    "file": "arabic_bottle.json",
+    "review_count": 8,
+    "expected_verdict": "positive",
+    "expected_confidence": "medium",
+    "notes": "Native Arabic reviews test."
   }
 ]
