@@ -1,9 +1,6 @@
 """
-app.py
-
-Gradio UI for Moms Verdict pipeline.
-Run with: python app.py
-Colab: demo.launch(share=True) gives a public URL.
+app.py - Moms Verdict UI
+Clean dark theme inspired by modern dev tooling aesthetics.
 """
 
 import json
@@ -17,18 +14,11 @@ load_dotenv()
 from src.pipeline import MomsVerdictPipeline
 from src.schema import ConfidenceLevel
 
-# initialise pipeline once — embedding model loads lazily on first use
 pipeline = MomsVerdictPipeline()
-
 SAMPLE_DIR = Path("data/sample_products")
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def load_sample_products():
-    """Load available sample products from index.json."""
     index_path = SAMPLE_DIR / "index.json"
     if not index_path.exists():
         return {}
@@ -38,233 +28,394 @@ def load_sample_products():
 
 
 def format_pros_cons(pros, cons):
-    """Format pros and cons into readable text."""
     lines = []
     if pros:
-        lines.append("✅ PROS")
+        lines.append("PROS")
         for p in pros:
             lines.append(
                 f"  • {p.point}\n"
-                f"    ({p.evidence.mention_count} moms, "
-                f"{p.mention_percentage:.0f}%)\n"
+                f"    {p.evidence.mention_count} moms · {p.mention_percentage:.0f}% of reviews\n"
                 f"    \"{p.evidence.representative_quote}\""
             )
     if cons:
-        lines.append("\n❌ CONS")
+        if lines:
+            lines.append("")
+        lines.append("CONS")
         for c in cons:
             lines.append(
                 f"  • {c.point}\n"
-                f"    ({c.evidence.mention_count} moms, "
-                f"{c.mention_percentage:.0f}%)\n"
+                f"    {c.evidence.mention_count} moms · {c.mention_percentage:.0f}% of reviews\n"
                 f"    \"{c.evidence.representative_quote}\""
             )
-    return "\n".join(lines) if lines else "No pros/cons extracted."
+    return "\n\n".join(lines) if lines else "No pros/cons extracted."
 
 
-def confidence_color(level):
-    colors = {
-        "high": "🟢 HIGH",
-        "medium": "🟡 MEDIUM",
-        "low": "🔴 LOW",
-        "insufficient": "⛔ INSUFFICIENT"
-    }
-    return colors.get(level, level)
-
-
-# ---------------------------------------------------------------------------
-# Main pipeline function
-# ---------------------------------------------------------------------------
-
-def run_pipeline(product_name, reviews_json, sample_choice):
-    """
-    Called when the user clicks Generate Verdict.
-    Either uses the typed JSON or loads a sample product.
-    """
+def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
     try:
-        # decide input source
-        if sample_choice and sample_choice != "-- Type your own --":
+        if sample_choice and sample_choice != "── or paste your own reviews below ──":
             products = load_sample_products()
             filename = products.get(sample_choice)
-            if filename:
-                filepath = SAMPLE_DIR / filename
-                with open(filepath, encoding="utf-8") as f:
-                    data = json.load(f)
-                product_name = data["product_name"]
-                raw_reviews = data["reviews"]
-            else:
-                return ("Error: sample file not found.",) + ("",) * 6
-        elif reviews_json.strip():
+            if not filename:
+                return ("Sample not found.",) + ("",) * 6
+            with open(SAMPLE_DIR / filename, encoding="utf-8") as f:
+                data = json.load(f)
+            product_name = data["product_name"]
+            raw_reviews = data["reviews"]
+
+        elif custom_reviews_json.strip():
+            if not custom_product_name.strip():
+                return ("Please enter a product name for custom reviews.",) + ("",) * 6
             try:
-                raw_reviews = json.loads(reviews_json)
-                if not isinstance(raw_reviews, list):
-                    return ("Error: reviews must be a JSON array.",) + ("",) * 6
+                raw_reviews = json.loads(custom_reviews_json)
             except json.JSONDecodeError as e:
-                return (f"Error parsing JSON: {e}",) + ("",) * 6
+                return (f"Invalid JSON: {e}",) + ("",) * 6
+            product_name = custom_product_name.strip()
+
         else:
-            return ("Please select a sample product or paste reviews JSON.",) + ("",) * 6
+            return ("Please select a sample product or paste reviews JSON below.",) + ("",) * 6
 
-        if not product_name.strip():
-            return ("Please enter a product name.",) + ("",) * 6
+        verdict = pipeline.run(product_name, raw_reviews)
 
-        # run the pipeline
-        verdict = pipeline.run(product_name.strip(), raw_reviews)
-
-        # format outputs
         if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
-            verdict_en_out = f"⛔ Verdict refused\n\n{verdict.refusal_reason}"
-            verdict_ar_out = ""
-            pros_cons_out = ""
-        else:
-            verdict_en_out = verdict.verdict_en
-            verdict_ar_out = verdict.verdict_ar
-            pros_cons_out = format_pros_cons(verdict.pros, verdict.cons)
+            return (
+                f"⛔  Verdict refused\n\n{verdict.refusal_reason}",
+                "—",
+                "Insufficient data to generate pros & cons.",
+                f"⛔  INSUFFICIENT  ·  {verdict.review_count} reviews processed",
+                f"Similarity score: {verdict.fake_review_flag.average_similarity_score:.3f}",
+                "None identified",
+                verdict.model_dump_json(indent=2)
+            )
 
-        confidence_out = (
-            f"{confidence_color(verdict.confidence_level.value)} — "
-            f"Score: {verdict.confidence_score} | "
-            f"Reviews: {verdict.review_count} | "
-            f"Languages: {verdict.language_breakdown}"
+        conf_emoji = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(
+            verdict.confidence_level.value, "⚪"
+        )
+        confidence_str = (
+            f"{conf_emoji}  {verdict.confidence_level.value.upper()}  ·  "
+            f"Score: {verdict.confidence_score}  ·  "
+            f"{verdict.review_count} reviews  ·  "
+            f"EN: {verdict.language_breakdown.get('en', 0)}  "
+            f"AR: {verdict.language_breakdown.get('ar', 0)}"
         )
 
-        fake_out = (
-            f"⚠️ FLAGGED — {verdict.fake_review_flag.reason}"
+        fake_str = (
+            f"⚠️  Flagged — {verdict.fake_review_flag.reason}"
             if verdict.fake_review_flag.flagged
-            else f"✅ Reviews appear genuine "
-                 f"(similarity score: "
-                 f"{verdict.fake_review_flag.average_similarity_score:.3f})"
+            else f"✅  Genuine  ·  similarity score: {verdict.fake_review_flag.average_similarity_score:.3f}"
         )
 
-        themes_out = (
-            ", ".join(verdict.themes_identified)
-            if verdict.themes_identified
-            else "None identified"
-        )
-
-        raw_out = verdict.model_dump_json(indent=2)
+        themes_str = "  ·  ".join(verdict.themes_identified) if verdict.themes_identified else "None"
 
         return (
-            verdict_en_out,
-            verdict_ar_out,
-            pros_cons_out,
-            confidence_out,
-            fake_out,
-            themes_out,
-            raw_out
+            verdict.verdict_en,
+            verdict.verdict_ar,
+            format_pros_cons(verdict.pros, verdict.cons),
+            confidence_str,
+            fake_str,
+            themes_str,
+            verdict.model_dump_json(indent=2)
         )
 
     except Exception as e:
         import traceback
-        error_detail = traceback.format_exc()
-        return (
-            f"Pipeline error: {e}",
-            "", "", "", "", "",
-            error_detail
-        )
+        return (f"Error: {e}", "", "", "", "", "", traceback.format_exc())
 
 
 # ---------------------------------------------------------------------------
-# Gradio UI
+# Custom CSS — dark theme, Composio-inspired
+# ---------------------------------------------------------------------------
+
+CSS = """
+/* ── Base ── */
+body, .gradio-container {
+    background-color: #0f0f12 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: #e2e2e8 !important;
+}
+
+/* ── Header ── */
+.app-header {
+    padding: 2.5rem 0 1.5rem 0;
+    border-bottom: 1px solid #1e1e2e;
+    margin-bottom: 2rem;
+}
+.app-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+.app-subtitle {
+    font-size: 0.9rem;
+    color: #6b6b80;
+    margin-top: 0.3rem;
+}
+.app-tagline {
+    font-size: 0.85rem;
+    color: #8b5cf6;
+    font-weight: 500;
+    margin-top: 0.2rem;
+}
+
+/* ── Cards ── */
+.card {
+    background: #13131a !important;
+    border: 1px solid #1e1e2e !important;
+    border-radius: 12px !important;
+    padding: 1.25rem !important;
+}
+
+/* ── Section labels ── */
+.section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b6b80;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Inputs ── */
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select {
+    background: #1a1a24 !important;
+    border: 1px solid #2a2a3a !important;
+    border-radius: 8px !important;
+    color: #e2e2e8 !important;
+    font-size: 0.9rem !important;
+}
+.gradio-container input:focus,
+.gradio-container textarea:focus {
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15) !important;
+}
+
+/* ── Dropdown ── */
+.gradio-container .wrap {
+    background: #1a1a24 !important;
+    border: 1px solid #2a2a3a !important;
+    border-radius: 8px !important;
+}
+
+/* ── Button ── */
+.generate-btn {
+    background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 1.5rem !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: opacity 0.2s !important;
+}
+.generate-btn:hover {
+    opacity: 0.9 !important;
+}
+
+/* ── Output textboxes ── */
+.gradio-container .output-textbox textarea {
+    background: #13131a !important;
+    border: 1px solid #1e1e2e !important;
+    border-radius: 8px !important;
+    color: #e2e2e8 !important;
+    font-size: 0.88rem !important;
+    line-height: 1.6 !important;
+}
+
+/* ── Arabic field ── */
+.arabic-field textarea {
+    direction: rtl !important;
+    text-align: right !important;
+    font-family: 'Noto Sans Arabic', 'Arial', sans-serif !important;
+    font-size: 0.95rem !important;
+    line-height: 1.8 !important;
+}
+
+/* ── Labels ── */
+.gradio-container label span {
+    color: #9090a8 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+}
+
+/* ── Accordion ── */
+.gradio-container .accordion {
+    background: #13131a !important;
+    border: 1px solid #1e1e2e !important;
+    border-radius: 8px !important;
+}
+
+/* ── Divider ── */
+.divider {
+    border: none;
+    border-top: 1px solid #1e1e2e;
+    margin: 1.5rem 0;
+}
+
+/* ── Status pills ── */
+.status-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+/* ── Footer ── */
+.footer {
+    text-align: center;
+    color: #3a3a4a;
+    font-size: 0.78rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #1e1e2e;
+    margin-top: 2rem;
+}
+
+/* hide gradio footer */
+footer { display: none !important; }
+"""
+
+
+# ---------------------------------------------------------------------------
+# Build UI
 # ---------------------------------------------------------------------------
 
 def build_ui():
     sample_products = load_sample_products()
-    sample_choices = ["-- Type your own --"] + list(sample_products.keys())
+    sample_choices = (
+        ["── or paste your own reviews below ──"] +
+        list(sample_products.keys())
+    )
 
-    with gr.Blocks(
-        title="Moms Verdict — Mumzworld Review Intelligence",
-        theme=gr.themes.Soft()
-    ) as demo:
+    with gr.Blocks(css=CSS, title="Moms Verdict") as demo:
 
-        gr.Markdown("""
-        # 🌸 Moms Verdict
-        ### AI-powered review synthesis for Mumzworld
-        *Reads every review. Writes the verdict moms actually need.*
-        ---
+        # ── Header ──
+        gr.HTML("""
+        <div class="app-header">
+            <div class="app-title">🌸 Moms Verdict</div>
+            <div class="app-subtitle">AI-powered review synthesis for Mumzworld</div>
+            <div class="app-tagline">Reads every review. Writes the verdict moms actually need.</div>
+        </div>
         """)
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Input")
+        with gr.Row(equal_height=False):
 
+            # ── Left column — Input ──
+            with gr.Column(scale=1, min_width=300):
+
+                gr.HTML('<div class="section-label">Sample Products</div>')
                 sample_dropdown = gr.Dropdown(
                     choices=sample_choices,
-                    value=sample_choices[0],
-                    label="Load a sample product",
-                    info="Select a pre-loaded product or type your own below"
+                    value=sample_choices[1],  # default to Avent bottle
+                    label="Select a product",
+                    container=True
                 )
 
-                product_input = gr.Textbox(
-                    label="Product Name",
-                    placeholder="e.g. Philips Avent Natural Baby Bottle 260ml",
-                    lines=1
-                )
+                gr.HTML('<hr class="divider">')
 
-                reviews_input = gr.Textbox(
-                    label="Reviews JSON (if not using sample)",
-                    placeholder='[{"text": "Great bottle!", "rating": 5.0, "language": "en"}, ...]',
-                    lines=8,
-                    info="Paste a JSON array of reviews. Each needs: text, rating, language."
-                )
+                with gr.Accordion("🔧 Custom input (paste your own reviews)", open=False):
+                    gr.HTML('<div class="section-label">Product Name</div>')
+                    custom_product = gr.Textbox(
+                        placeholder="e.g. Chicco NaturalFit Bottle 250ml",
+                        label="",
+                        lines=1
+                    )
+                    gr.HTML('<div class="section-label" style="margin-top:0.75rem">Reviews JSON</div>')
+                    custom_reviews = gr.Textbox(
+                        placeholder='[{"text": "Great bottle!", "rating": 5.0, "language": "en"}, ...]',
+                        label="",
+                        lines=6
+                    )
+
+                gr.HTML('<hr class="divider">')
 
                 run_btn = gr.Button(
-                    "🔍 Generate Verdict",
-                    variant="primary",
-                    size="lg"
+                    "Generate Verdict →",
+                    elem_classes=["generate-btn"]
                 )
 
+                gr.HTML("""
+                <div style="margin-top: 1rem; color: #3a3a4a; font-size: 0.75rem; line-height: 1.6;">
+                    Pipeline: Fake detection → Theme clustering →<br>
+                    Structured extraction → Confidence scoring →<br>
+                    Native Arabic generation
+                </div>
+                """)
+
+            # ── Right column — Output ──
             with gr.Column(scale=2):
-                gr.Markdown("### Output")
 
                 with gr.Row():
-                    verdict_en = gr.Textbox(
-                        label="Verdict (English)",
-                        lines=4,
+                    with gr.Column():
+                        gr.HTML('<div class="section-label">Verdict — English</div>')
+                        verdict_en = gr.Textbox(
+                            label="",
+                            lines=5,
+                            interactive=False,
+                            elem_classes=["output-textbox"]
+                        )
+                    with gr.Column():
+                        gr.HTML('<div class="section-label">الحكم — Arabic</div>')
+                        verdict_ar = gr.Textbox(
+                            label="",
+                            lines=5,
+                            interactive=False,
+                            elem_classes=["output-textbox", "arabic-field"]
+                        )
+
+                gr.HTML('<div class="section-label" style="margin-top:1rem">Pros & Cons — Grounded in Reviews</div>')
+                pros_cons = gr.Textbox(
+                    label="",
+                    lines=12,
+                    interactive=False,
+                    elem_classes=["output-textbox"]
+                )
+
+                with gr.Row():
+                    with gr.Column():
+                        gr.HTML('<div class="section-label">Confidence</div>')
+                        confidence_out = gr.Textbox(
+                            label="",
+                            interactive=False,
+                            elem_classes=["output-textbox"]
+                        )
+                    with gr.Column():
+                        gr.HTML('<div class="section-label">Review Authenticity</div>')
+                        fake_out = gr.Textbox(
+                            label="",
+                            interactive=False,
+                            elem_classes=["output-textbox"]
+                        )
+
+                gr.HTML('<div class="section-label" style="margin-top:0.75rem">Themes Identified</div>')
+                themes_out = gr.Textbox(
+                    label="",
+                    interactive=False,
+                    elem_classes=["output-textbox"]
+                )
+
+                with gr.Accordion("{ } Raw JSON Output", open=False):
+                    raw_json = gr.Code(
+                        label="",
+                        language="json",
                         interactive=False
                     )
-                    verdict_ar = gr.Textbox(
-                        label="الحكم (Arabic)",
-                        lines=4,
-                        interactive=False,
-                        rtl=True
-                    )
 
-                pros_cons = gr.Textbox(
-                    label="Pros & Cons (Grounded)",
-                    lines=10,
-                    interactive=False
-                )
-
-                confidence_out = gr.Textbox(
-                    label="Confidence",
-                    interactive=False
-                )
-
-                fake_out = gr.Textbox(
-                    label="Review Authenticity",
-                    interactive=False
-                )
-
-                themes_out = gr.Textbox(
-                    label="Themes Identified",
-                    interactive=False
-                )
-
-        with gr.Accordion("Raw JSON Output", open=False):
-            raw_json = gr.Code(
-                label="Full MomsVerdict JSON",
-                language="json",
-                interactive=False
-            )
-
-        gr.Markdown("""
-        ---
-        **How it works:** Reviews → Fake detection → Theme clustering →
-        Structured extraction → Confidence scoring → Native Arabic generation
+        gr.HTML("""
+        <div class="footer">
+            Moms Verdict · Built for Mumzworld · 
+            Powered by OpenRouter + sentence-transformers + Gradio
+        </div>
         """)
 
         run_btn.click(
             fn=run_pipeline,
-            inputs=[product_input, reviews_input, sample_dropdown],
+            inputs=[sample_dropdown, custom_reviews, custom_product],
             outputs=[
                 verdict_en, verdict_ar, pros_cons,
                 confidence_out, fake_out, themes_out, raw_json
@@ -274,11 +425,6 @@ def build_ui():
     return demo
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
-
 if __name__ == "__main__":
     demo = build_ui()
-    # share=True gives a public URL in Colab
     demo.launch(share=True)
