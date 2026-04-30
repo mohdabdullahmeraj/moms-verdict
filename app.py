@@ -133,6 +133,10 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
         return (f"Error: {e}", "", "", "", "", "", traceback.format_exc(), gr.update())
 
 
+# ---------------------------------------------------------------------------
+# Custom CSS — dark theme, Composio-inspired
+# ---------------------------------------------------------------------------
+
 CSS = """
 /* ── Force Light Theme / Override Gradio Dark Mode ── */
 :root, .dark {
@@ -156,15 +160,18 @@ CSS = """
 }
 
 /* ── Base ── */
-body, .gradio-container {
+body {
     background-color: #f4f4f0 !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #111111 !important;
 }
 .gradio-container {
-    max-width: 1400px !important;
-    padding: 2rem 3rem !important;
-    margin: 0 auto !important;
+    background-color: #f4f4f0 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: #111111 !important;
+    padding: 2rem 3rem !important; /* Adds padding inside the container */
+    max-width: 1600px !important; /* Prevents it from stretching infinitely on ultrawide monitors */
+    margin: 0 auto !important; /* Centers it */
 }
 
 /* ── Header ── */
