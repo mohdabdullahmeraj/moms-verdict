@@ -16,6 +16,12 @@ from src.schema import ConfidenceLevel
 
 pipeline = MomsVerdictPipeline()
 SAMPLE_DIR = Path("data/sample_products")
+VERDICT_CACHE = {}
+
+def load_session(product_name):
+    if not product_name or product_name not in VERDICT_CACHE:
+        return ("",) * 7
+    return VERDICT_CACHE[product_name]
 
 
 def load_sample_products():
@@ -56,7 +62,7 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
             products = load_sample_products()
             filename = products.get(sample_choice)
             if not filename:
-                return ("Sample not found.",) + ("",) * 6
+                return ("Sample not found.",) + ("",) * 6 + (gr.update(),)
             with open(SAMPLE_DIR / filename, encoding="utf-8") as f:
                 data = json.load(f)
             product_name = data["product_name"]
@@ -64,21 +70,22 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
 
         elif custom_reviews_json.strip():
             if not custom_product_name.strip():
-                return ("Please enter a product name for custom reviews.",) + ("",) * 6
+                return ("Please enter a product name for custom reviews.",) + ("",) * 6 + (gr.update(),)
             try:
                 raw_reviews = json.loads(custom_reviews_json)
             except json.JSONDecodeError as e:
-                return (f"Invalid JSON: {e}",) + ("",) * 6
+                return (f"Invalid JSON: {e}",) + ("",) * 6 + (gr.update(),)
             product_name = custom_product_name.strip()
 
         else:
-            return ("Please select a sample product or paste reviews JSON below.",) + ("",) * 6
+            return ("Please select a sample product or paste reviews JSON below.",) + ("",) * 6 + (gr.update(),)
 
+        print(f"\\n[UI] 🚀 Starting full pipeline for: {product_name}")
         verdict = pipeline.run(product_name, raw_reviews)
 
         if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
-            return (
-                f"⛔  Verdict refused\n\n{verdict.refusal_reason}",
+            outputs = (
+                f"⛔  Verdict refused\\n\\n{verdict.refusal_reason}",
                 "—",
                 "Insufficient data to generate pros & cons.",
                 f"⛔  INSUFFICIENT  ·  {verdict.review_count} reviews processed",
@@ -86,6 +93,8 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
                 "None identified",
                 verdict.model_dump_json(indent=2)
             )
+            VERDICT_CACHE[product_name] = outputs
+            return outputs + (gr.update(choices=list(VERDICT_CACHE.keys()), value=product_name),)
 
         conf_emoji = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(
             verdict.confidence_level.value, "⚪"
@@ -106,7 +115,7 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
 
         themes_str = "  ·  ".join(verdict.themes_identified) if verdict.themes_identified else "None"
 
-        return (
+        outputs = (
             verdict.verdict_en,
             verdict.verdict_ar,
             format_pros_cons(verdict.pros, verdict.cons),
@@ -115,10 +124,13 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
             themes_str,
             verdict.model_dump_json(indent=2)
         )
+        
+        VERDICT_CACHE[product_name] = outputs
+        return outputs + (gr.update(choices=list(VERDICT_CACHE.keys()), value=product_name),)
 
     except Exception as e:
         import traceback
-        return (f"Error: {e}", "", "", "", "", "", traceback.format_exc())
+        return (f"Error: {e}", "", "", "", "", "", traceback.format_exc(), gr.update())
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +363,22 @@ def build_ui():
 
         with gr.Row(equal_height=False):
 
-            # ── Left column — Input ──
+            # ── Left column — Session History ──
+            with gr.Column(scale=1, min_width=250):
+                gr.HTML('<div class="section-label">Session History</div>')
+                history_dropdown = gr.Dropdown(
+                    choices=[],
+                    label="Recent Runs",
+                    interactive=True,
+                    container=True
+                )
+                gr.HTML("""
+                <div style="margin-top: 1rem; color: #3a3a4a; font-size: 0.8rem; line-height: 1.4;">
+                    Click a previous run to load its results instantly without re-processing.
+                </div>
+                """)
+
+            # ── Middle column — Input ──
             with gr.Column(scale=1, min_width=300):
 
                 gr.HTML('<div class="section-label">Sample Products</div>')
@@ -447,6 +474,15 @@ def build_ui():
         run_btn.click(
             fn=run_pipeline,
             inputs=[sample_dropdown, custom_reviews, custom_product],
+            outputs=[
+                verdict_en, verdict_ar, pros_cons,
+                confidence_out, fake_out, themes_out, raw_json, history_dropdown
+            ]
+        )
+
+        history_dropdown.change(
+            fn=load_session,
+            inputs=[history_dropdown],
             outputs=[
                 verdict_en, verdict_ar, pros_cons,
                 confidence_out, fake_out, themes_out, raw_json
