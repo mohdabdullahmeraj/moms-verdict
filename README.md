@@ -396,15 +396,21 @@ pytest evals/test_pipeline.py -v
 
 ---
 
+## AI Usage Note
+
+Claude & Gemini (via Antigravity) for architecture design, schema scaffolding, prompt iteration, and debugging via pair-coding sessions. `openai/gpt-oss-20b:free` via OpenRouter for runtime extraction and Arabic generation. `paraphrase-multilingual-MiniLM-L12-v2` for local embeddings (fake detection + clustering). Claude suggested the Arabic-prompt-in-Arabic approach and the embedding-based fake detector; I overruled it on confidence scoring (moved from LLM to pure code) and Arabic generation strategy (independent generation, not translation). Eval test cases were co-designed with Claude, then manually extended for edge cases.
+
+---
+
 ## Time Log
 
 | Phase | Time |
 |---|---|
-| Problem selection + architecture | 45 min |
-| Schema + pipeline design | 60 min |
-| Core stages (preprocessor, detector, clusterer) | 90 min |
-| LLM stages (extractor, Arabic generator) | 75 min |
-| Gradio UI | 45 min |
-| Evals (12 test cases) | 60 min |
-| Documentation | 45 min |
-| **Total** | **~7 hrs** |
+| Problem selection + architecture | 30 min |
+| Schema + pipeline design | 45 min |
+| Core stages (preprocessor, detector, clusterer) | 60 min |
+| LLM stages (extractor, Arabic generator) | 60 min |
+| Gradio UI | 40 min |
+| Evals (12 test cases) | 45 min |
+| Documentation | 30 min |
+| **Total** | **~5.5 hrs** |
