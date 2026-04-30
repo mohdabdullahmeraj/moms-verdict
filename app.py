@@ -160,23 +160,26 @@ CSS = """
 }
 
 /* ── Base ── */
-body, gradio-app, .gradio-container, #root {
+body, .gradio-container {
     background-color: #f4f4f0 !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #111111 !important;
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
 }
-
 .gradio-container {
-    max-width: 1400px !important;
-    margin: 0 auto !important;
-    padding: 2rem 3rem !important;
+    padding: 0 !important;
+    max-width: 100% !important;
 }
 
-.gradio-container .main {
-    padding: 0 2rem !important;
+/* ── Inner content wrapper — adds breathing room from edges ── */
+.gradio-container > .main,
+.gradio-container > div {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+}
+
+/* Columns get a small gap so boxes don't touch each other */
+.gradio-container .row > .column {
+    padding: 0 0.5rem !important;
 }
 
 /* ── Header ── */
