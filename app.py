@@ -263,23 +263,26 @@ body, .gradio-container {
 }
 
 /* ── Output textboxes ── */
-.gradio-container .output-textbox textarea {
+.gradio-container .output-box {
     background: #ffffff !important;
     border: 2px solid #111111 !important;
     border-radius: 0px !important;
     box-shadow: 3px 3px 0px #111111 !important;
     color: #111111 !important;
-    font-size: 0.9rem !important;
+    font-size: 0.95rem !important;
     line-height: 1.6 !important;
     font-weight: 500 !important;
+    padding: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+    min-height: 40px !important;
 }
 
 /* ── Arabic field ── */
-.arabic-field textarea {
+.gradio-container .arabic-field {
     direction: rtl !important;
     text-align: right !important;
     font-family: 'Noto Sans Arabic', 'Arial', sans-serif !important;
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
     line-height: 1.8 !important;
 }
 
@@ -396,53 +399,35 @@ def build_ui():
                 with gr.Row():
                     with gr.Column():
                         gr.HTML('<div class="section-label">Verdict — English</div>')
-                        verdict_en = gr.Textbox(
-                            label="",
-                            max_lines=99,
-                            interactive=False,
-                            elem_classes=["output-textbox"]
+                        verdict_en = gr.Markdown(
+                            elem_classes=["output-box"]
                         )
                     with gr.Column():
                         gr.HTML('<div class="section-label">الحكم — Arabic</div>')
-                        verdict_ar = gr.Textbox(
-                            label="",
-                            max_lines=99,
-                            interactive=False,
-                            elem_classes=["output-textbox", "arabic-field"]
+                        verdict_ar = gr.Markdown(
+                            elem_classes=["output-box", "arabic-field"]
                         )
 
                 gr.HTML('<div class="section-label" style="margin-top:1rem">Pros & Cons — Grounded in Reviews</div>')
-                pros_cons = gr.Textbox(
-                    label="",
-                    max_lines=99,
-                    interactive=False,
-                    elem_classes=["output-textbox"]
+                pros_cons = gr.Markdown(
+                    elem_classes=["output-box"]
                 )
 
                 with gr.Row():
                     with gr.Column():
                         gr.HTML('<div class="section-label">Confidence</div>')
-                        confidence_out = gr.Textbox(
-                            label="",
-                            max_lines=99,
-                            interactive=False,
-                            elem_classes=["output-textbox"]
+                        confidence_out = gr.Markdown(
+                            elem_classes=["output-box"]
                         )
                     with gr.Column():
                         gr.HTML('<div class="section-label">Review Authenticity</div>')
-                        fake_out = gr.Textbox(
-                            label="",
-                            max_lines=99,
-                            interactive=False,
-                            elem_classes=["output-textbox"]
+                        fake_out = gr.Markdown(
+                            elem_classes=["output-box"]
                         )
 
                 gr.HTML('<div class="section-label" style="margin-top:0.75rem">Themes Identified</div>')
-                themes_out = gr.Textbox(
-                    label="",
-                    max_lines=99,
-                    interactive=False,
-                    elem_classes=["output-textbox"]
+                themes_out = gr.Markdown(
+                    elem_classes=["output-box"]
                 )
 
                 with gr.Accordion("{ } Raw JSON Output", open=False):
