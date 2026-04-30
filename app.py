@@ -126,6 +126,27 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
 # ---------------------------------------------------------------------------
 
 CSS = """
+/* ── Force Light Theme / Override Gradio Dark Mode ── */
+:root, .dark {
+    --background-fill-primary: #f4f4f0 !important;
+    --background-fill-secondary: #ffffff !important;
+    --block-background-fill: #ffffff !important;
+    --block-border-width: 0px !important;
+    --border-color-primary: #111111 !important;
+    --body-text-color: #111111 !important;
+    --color-background-primary: #f4f4f0 !important;
+    --color-background-secondary: #ffffff !important;
+}
+
+/* Remove default dark containers */
+.gradio-container .block,
+.gradio-container .form,
+.gradio-container .panel {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
 /* ── Base ── */
 body, .gradio-container {
     background-color: #f4f4f0 !important;
