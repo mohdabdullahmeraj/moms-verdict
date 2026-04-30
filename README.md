@@ -2,6 +2,8 @@
 
 An end-to-end, deterministic AI pipeline that synthesizes raw e-commerce reviews into structured, grounded, and bilingual (English/Arabic) product verdicts.
 
+🎥 **[Watch the Demo on Loom](https://www.loom.com/share/e9e0089db98740f18cde217bd9aff0a2)**
+
 ---
 
 ## What Is the Problem 
