@@ -160,15 +160,27 @@ CSS = """
 }
 
 /* ── Base ── */
-body, .gradio-container {
+body {
     background-color: #f4f4f0 !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #111111 !important;
-    border: none !important; /* Removes Gradio's automatic container border */
 }
+
 .gradio-container {
-    padding: 1rem 4rem !important; /* Provides the spacing from edges */
-    max-width: 100% !important; /* Prevents Gradio from trying to box the layout */
+    background-color: #f4f4f0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    padding: 0 3rem !important;
+    box-sizing: border-box !important;
+}
+
+.gradio-container > .main,
+.gradio-container > .main > .wrap {
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
 
 /* ── Header ── */
