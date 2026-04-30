@@ -80,12 +80,12 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
         else:
             return ("Please select a sample product or paste reviews JSON below.",) + ("",) * 6 + (gr.update(),)
 
-        print(f"\\n[UI] 🚀 Starting full pipeline for: {product_name}")
+        print(f"\n[UI] 🚀 Starting full pipeline for: {product_name}")
         verdict = pipeline.run(product_name, raw_reviews)
 
         if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
             outputs = (
-                f"⛔  Verdict refused\\n\\n{verdict.refusal_reason}",
+                f"⛔  Verdict refused\n\n{verdict.refusal_reason}",
                 "—",
                 "Insufficient data to generate pros & cons.",
                 f"⛔  INSUFFICIENT  ·  {verdict.review_count} reviews processed",
