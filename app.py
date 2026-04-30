@@ -128,40 +128,40 @@ def run_pipeline(sample_choice, custom_reviews_json, custom_product_name):
 CSS = """
 /* ── Base ── */
 body, .gradio-container {
-    background-color: #0f0f12 !important;
+    background-color: #fafafa !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: #e2e2e8 !important;
+    color: #0f172a !important;
 }
 
 /* ── Header ── */
 .app-header {
     padding: 2.5rem 0 1.5rem 0;
-    border-bottom: 1px solid #1e1e2e;
+    border-bottom: 1px solid #e2e8f0;
     margin-bottom: 2rem;
 }
 .app-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #0f172a;
     letter-spacing: -0.5px;
     margin: 0;
 }
 .app-subtitle {
     font-size: 0.9rem;
-    color: #6b6b80;
+    color: #475569;
     margin-top: 0.3rem;
 }
 .app-tagline {
     font-size: 0.85rem;
-    color: #8b5cf6;
+    color: #7c3aed;
     font-weight: 500;
     margin-top: 0.2rem;
 }
 
 /* ── Cards ── */
 .card {
-    background: #13131a !important;
-    border: 1px solid #1e1e2e !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 12px !important;
     padding: 1.25rem !important;
 }
@@ -172,7 +172,7 @@ body, .gradio-container {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #6b6b80;
+    color: #64748b;
     margin-bottom: 0.5rem;
 }
 
@@ -180,10 +180,10 @@ body, .gradio-container {
 .gradio-container input,
 .gradio-container textarea,
 .gradio-container select {
-    background: #1a1a24 !important;
-    border: 1px solid #2a2a3a !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: 8px !important;
-    color: #e2e2e8 !important;
+    color: #0f172a !important;
     font-size: 0.9rem !important;
 }
 .gradio-container input:focus,
@@ -194,14 +194,14 @@ body, .gradio-container {
 
 /* ── Dropdown ── */
 .gradio-container .wrap {
-    background: #1a1a24 !important;
-    border: 1px solid #2a2a3a !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: 8px !important;
 }
 
 /* ── Button ── */
 .generate-btn {
-    background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+    background: #0f172a !important;
     border: none !important;
     border-radius: 8px !important;
     color: white !important;
@@ -213,15 +213,15 @@ body, .gradio-container {
     transition: opacity 0.2s !important;
 }
 .generate-btn:hover {
-    opacity: 0.9 !important;
+    opacity: 0.85 !important;
 }
 
 /* ── Output textboxes ── */
 .gradio-container .output-textbox textarea {
-    background: #13131a !important;
-    border: 1px solid #1e1e2e !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
-    color: #e2e2e8 !important;
+    color: #0f172a !important;
     font-size: 0.88rem !important;
     line-height: 1.6 !important;
 }
@@ -237,7 +237,7 @@ body, .gradio-container {
 
 /* ── Labels ── */
 .gradio-container label span {
-    color: #9090a8 !important;
+    color: #64748b !important;
     font-size: 0.75rem !important;
     font-weight: 600 !important;
     text-transform: uppercase !important;
@@ -246,15 +246,15 @@ body, .gradio-container {
 
 /* ── Accordion ── */
 .gradio-container .accordion {
-    background: #13131a !important;
-    border: 1px solid #1e1e2e !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
 }
 
 /* ── Divider ── */
 .divider {
     border: none;
-    border-top: 1px solid #1e1e2e;
+    border-top: 1px solid #e2e8f0;
     margin: 1.5rem 0;
 }
 
@@ -269,10 +269,10 @@ body, .gradio-container {
 /* ── Footer ── */
 .footer {
     text-align: center;
-    color: #3a3a4a;
+    color: #94a3b8;
     font-size: 0.78rem;
     padding: 1.5rem 0;
-    border-top: 1px solid #1e1e2e;
+    border-top: 1px solid #e2e8f0;
     margin-top: 2rem;
 }
 
