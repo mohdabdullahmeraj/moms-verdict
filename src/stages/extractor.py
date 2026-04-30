@@ -28,7 +28,7 @@ client = openai.OpenAI(
 )
 
 # best free model on OpenRouter for structured extraction
-EXTRACTION_MODEL = os.environ.get("EXTRACTION_MODEL", "google/gemma-3-27b-it:free")
+EXTRACTION_MODEL = os.environ.get("EXTRACTION_MODEL", "openai/gpt-oss-20b:free")
 MAX_REVIEWS_PER_CLUSTER = 40
 INTER_CALL_DELAY_SECONDS = 3
 

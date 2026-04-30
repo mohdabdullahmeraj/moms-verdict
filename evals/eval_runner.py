@@ -1,18 +1,6 @@
 """
 evals/eval_runner.py
-
-Runs all eval test cases and prints a scorecard.
-
-Run with:
-    python evals/eval_runner.py
-
-Scoring per test case (max 8 points):
-    Schema validity        — 0 or 2
-    Confidence correct     — 0 or 2
-    Fake flag correct      — 0 or 1
-    Refusal correct        — 0 or 1
-    No hallucination       — 0 or 1
-    Arabic has Arabic text — 0 or 1
+Runs all 12 eval test cases and prints a scorecard.
 """
 
 import json
@@ -20,7 +8,6 @@ import sys
 import os
 from pathlib import Path
 
-# allow imports from project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pipeline import MomsVerdictPipeline
@@ -35,25 +22,23 @@ def count_arabic(text):
     return sum(1 for c in text if '\u0600' <= c <= '\u06FF')
 
 
-def run_eval(pipeline, case, verdict):
-    """Score one test case. Returns (score, max, details dict)."""
+def run_eval(case, verdict):
     details = {}
     score = 0
 
-    # --- Schema validity (2 pts) ---
+    # Schema validity (2 pts)
     try:
-        # if verdict was returned without error, schema passed
         _ = verdict.model_dump_json()
         details["schema_valid"] = "PASS (2/2)"
         score += 2
     except Exception as e:
         details["schema_valid"] = f"FAIL (0/2) — {e}"
 
-    # --- Confidence level correct (2 pts) ---
+    # Confidence level correct (2 pts)
     expected_conf = case.get("expected_confidence_level")
     if expected_conf is None:
         details["confidence_correct"] = "SKIP (not specified)"
-        score += 1  # partial credit
+        score += 1
     elif verdict.confidence_level.value == expected_conf:
         details["confidence_correct"] = f"PASS (2/2) — got {verdict.confidence_level.value}"
         score += 2
@@ -63,7 +48,7 @@ def run_eval(pipeline, case, verdict):
             f"got {verdict.confidence_level.value}"
         )
 
-    # --- Fake flag correct (1 pt) ---
+    # Fake flag correct (1 pt)
     expected_fake = case.get("expected_fake_flagged", False)
     actual_fake = verdict.fake_review_flag.flagged
     if actual_fake == expected_fake:
@@ -75,11 +60,11 @@ def run_eval(pipeline, case, verdict):
             f"got flagged={actual_fake}"
         )
 
-    # --- Refusal correct (1 pt) ---
+    # Refusal correct (1 pt)
     expected_refusal = case.get("expected_refusal", False)
     actual_refusal = verdict.confidence_level == ConfidenceLevel.INSUFFICIENT
     if actual_refusal == expected_refusal:
-        details["refusal_correct"] = f"PASS (1/1)"
+        details["refusal_correct"] = "PASS (1/1)"
         score += 1
     else:
         details["refusal_correct"] = (
@@ -87,10 +72,10 @@ def run_eval(pipeline, case, verdict):
             f"got refusal={actual_refusal}"
         )
 
-    # --- No hallucination (1 pt) ---
+    # No hallucination (1 pt)
     must_not_mention = case.get("must_not_mention", [])
     if not must_not_mention:
-        details["no_hallucination"] = "SKIP (no forbidden terms specified)"
+        details["no_hallucination"] = "SKIP (no forbidden terms)"
         score += 1
     else:
         verdict_text = (
@@ -103,13 +88,11 @@ def run_eval(pipeline, case, verdict):
             details["no_hallucination"] = "PASS (1/1) — no forbidden terms found"
             score += 1
         else:
-            details["no_hallucination"] = (
-                f"FAIL (0/1) — hallucinated: {violations}"
-            )
+            details["no_hallucination"] = f"FAIL (0/1) — found: {violations}"
 
-    # --- Arabic has Arabic text (1 pt) ---
+    # Arabic valid (1 pt)
     if verdict.confidence_level == ConfidenceLevel.INSUFFICIENT:
-        details["arabic_valid"] = "SKIP (refusal case, Arabic empty by design)"
+        details["arabic_valid"] = "SKIP (refusal case)"
         score += 1
     elif count_arabic(verdict.verdict_ar) >= 10:
         details["arabic_valid"] = (
@@ -126,17 +109,14 @@ def run_eval(pipeline, case, verdict):
 
 def main():
     print("=" * 65)
-    print("MOMS VERDICT — EVAL RUNNER")
+    print("MOMS VERDICT — EVAL RUNNER (12 Test Cases)")
     print("=" * 65)
 
-    # load test cases
     with open(CASES_FILE, encoding="utf-8") as f:
         cases = json.load(f)
 
     print(f"Loaded {len(cases)} test cases.\n")
-
     pipeline = MomsVerdictPipeline()
-
     results = []
 
     for case in cases:
@@ -144,24 +124,29 @@ def main():
         print(f"[{case['id']}] {case['name']}")
         print(f"Description: {case['description']}")
 
-        # load product data
-        filepath = SAMPLE_DIR / case["file"]
-        try:
-            with open(filepath, encoding="utf-8") as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            print(f"  ❌ File not found: {filepath}")
-            results.append({
-                "id": case["id"],
-                "name": case["name"],
-                "score": 0,
-                "max": MAX_SCORE_PER_CASE,
-                "error": "File not found"
-            })
+        # load reviews — from file or inline
+        if case.get("file"):
+            filepath = SAMPLE_DIR / case["file"]
+            try:
+                with open(filepath, encoding="utf-8") as f:
+                    data = json.load(f)
+                product_name = data["product_name"]
+                raw_reviews = data["reviews"]
+            except FileNotFoundError:
+                print(f"  ❌ File not found: {filepath}")
+                results.append({
+                    "id": case["id"], "name": case["name"],
+                    "score": 0, "max": MAX_SCORE_PER_CASE,
+                    "error": "File not found"
+                })
+                continue
+        elif "inline_reviews" in case:
+            product_name = case["inline_product"]
+            raw_reviews = case["inline_reviews"]
+        else:
+            print(f"  ❌ No reviews source specified")
             continue
 
-        product_name = data["product_name"]
-        raw_reviews = data["reviews"]
         print(f"Product: {product_name} ({len(raw_reviews)} reviews)")
 
         # run pipeline
@@ -170,22 +155,19 @@ def main():
         except Exception as e:
             print(f"  ❌ Pipeline error: {e}")
             results.append({
-                "id": case["id"],
-                "name": case["name"],
-                "score": 0,
-                "max": MAX_SCORE_PER_CASE,
+                "id": case["id"], "name": case["name"],
+                "score": 0, "max": MAX_SCORE_PER_CASE,
                 "error": str(e)
             })
             continue
 
-        # score it
-        score, max_score, details = run_eval(pipeline, case, verdict)
+        # score
+        score, max_score, details = run_eval(case, verdict)
 
         print(f"\nResults:")
         for criterion, result in details.items():
             icon = "✅" if "PASS" in result else ("⚠️" if "SKIP" in result else "❌")
             print(f"  {icon} {criterion}: {result}")
-
         print(f"\nScore: {score}/{max_score}")
 
         results.append({
@@ -196,16 +178,16 @@ def main():
             "details": details
         })
 
-    # final scorecard
+    # scorecard
     print(f"\n{'=' * 65}")
     print("SCORECARD")
     print(f"{'=' * 65}")
     total_score = sum(r["score"] for r in results)
-    total_max = sum(r["max"] for r in results)
+    total_max = sum(r.get("max", MAX_SCORE_PER_CASE) for r in results)
 
     for r in results:
-        bar = "█" * r["score"] + "░" * (r["max"] - r["score"])
-        print(f"  [{r['id']}] {bar} {r['score']}/{r['max']} — {r['name']}")
+        bar = "█" * r["score"] + "░" * (r.get("max", MAX_SCORE_PER_CASE) - r["score"])
+        print(f"  [{r['id']}] {bar} {r['score']}/{r.get('max', MAX_SCORE_PER_CASE)} — {r['name']}")
 
     pct = round((total_score / total_max) * 100, 1) if total_max > 0 else 0
     print(f"\nOverall: {total_score}/{total_max} ({pct}%)")
@@ -219,7 +201,7 @@ def main():
 
     print("=" * 65)
 
-    # save results
+    # save
     results_path = Path("evals/results.json")
     with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)

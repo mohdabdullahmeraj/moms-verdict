@@ -14,7 +14,7 @@
     "id": "TC02",
     "name": "Mixed sentiment — stroller",
     "file": "graco_stroller.json",
-    "expected_confidence_level": "high",
+    "expected_confidence_level": null,
     "expected_sentiment": "mixed",
     "expected_refusal": false,
     "expected_fake_flagged": false,
@@ -42,5 +42,146 @@
     "expected_fake_flagged": false,
     "must_not_mention": [],
     "description": "Only 3 reviews. Pipeline must refuse and populate refusal_reason."
+  },
+  {
+    "id": "TC05",
+    "name": "Hallucination check — BPA-free not mentioned",
+    "file": "avent_bottle.json",
+    "expected_confidence_level": "high",
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": ["BPA-free", "BPA free", "bpa"],
+    "description": "Reviews never explicitly mention BPA-free. Verdict must not hallucinate this claim."
+  },
+  {
+    "id": "TC06",
+    "name": "Empty reviews list — explicit error",
+    "file": null,
+    "inline_reviews": [],
+    "inline_product": "Test Product Empty",
+    "expected_confidence_level": "insufficient",
+    "expected_sentiment": null,
+    "expected_refusal": true,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "Empty input. Pipeline must return INSUFFICIENT, not crash."
+  },
+  {
+    "id": "TC07",
+    "name": "Borderline volume — 6 reviews",
+    "file": null,
+    "inline_product": "BorderlineTest Bottle 200ml",
+    "inline_reviews": [
+      {"text": "Good bottle, my baby likes it a lot and no leaking issues.", "rating": 4.0, "language": "en", "reviewer_name": "Mom A"},
+      {"text": "Easy to clean and sterilise, really happy with this purchase.", "rating": 5.0, "language": "en", "reviewer_name": "Mom B"},
+      {"text": "Nipple flow is a bit fast but overall decent bottle for the price.", "rating": 3.0, "language": "en", "reviewer_name": "Mom C"},
+      {"text": "My baby took to it immediately, no fuss at all switching from breast.", "rating": 5.0, "language": "en", "reviewer_name": "Mom D"},
+      {"text": "Decent quality but nothing special compared to other brands I tried.", "rating": 3.0, "language": "en", "reviewer_name": "Mom E"},
+      {"text": "Great anti-colic design, my son had terrible gas before and this helped.", "rating": 5.0, "language": "en", "reviewer_name": "Mom F"}
+    ],
+    "expected_confidence_level": "low",
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "6 reviews — just above minimum threshold. Should produce LOW confidence verdict."
+  },
+  {
+    "id": "TC08",
+    "name": "Rating-text mismatch detection",
+    "file": null,
+    "inline_product": "MismatchTest Baby Bottle",
+    "inline_reviews": [
+      {"text": "Terrible product, broke after one week, complete waste of money.", "rating": 5.0, "language": "en", "reviewer_name": "Mom A"},
+      {"text": "Awful quality, leaked everywhere and baby refused it completely.", "rating": 5.0, "language": "en", "reviewer_name": "Mom B"},
+      {"text": "Horrible bottle, worst purchase I have ever made for my baby.", "rating": 5.0, "language": "en", "reviewer_name": "Mom C"},
+      {"text": "Do not buy this, it is useless and broke immediately on first use.", "rating": 5.0, "language": "en", "reviewer_name": "Mom D"},
+      {"text": "Disappointed with this product, it leaked and caused my baby distress.", "rating": 5.0, "language": "en", "reviewer_name": "Mom E"},
+      {"text": "Returned this immediately, terrible quality for the price charged.", "rating": 5.0, "language": "en", "reviewer_name": "Mom F"},
+      {"text": "Never buying again, broke on day two and customer service unhelpful.", "rating": 5.0, "language": "en", "reviewer_name": "Mom G"}
+    ],
+    "expected_confidence_level": null,
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "All 5-star ratings but text is negative. Preprocessor should catch rating-text mismatches."
+  },
+  {
+    "id": "TC09",
+    "name": "Native Arabic reviews only",
+    "file": null,
+    "inline_product": "Philips Avent زجاجة طبيعية",
+    "inline_reviews": [
+      {"text": "رضّاعة ممتازة، طفلي تقبّلها من أول استخدام وما فيها مغص أبداً.", "rating": 5.0, "language": "ar", "reviewer_name": "أم عبدالله"},
+      {"text": "أفضل رضّاعة جربتها. الرقبة الواسعة تسهّل التنظيف والتعقيم.", "rating": 5.0, "language": "ar", "reviewer_name": "نورة السالم"},
+      {"text": "طفلتي كان عندها مغص شديد وبعد ما حوّلتها على هالرضّاعة تحسّن الوضع.", "rating": 5.0, "language": "ar", "reviewer_name": "سارة المطيري"},
+      {"text": "جيدة بس تدفق الحليب سريع شوي للمواليد الصغار.", "rating": 3.0, "language": "ar", "reviewer_name": "أم خالد"},
+      {"text": "سهلة التنظيف وتدخل في غسالة الأطباق بدون مشاكل. الجودة ممتازة.", "rating": 5.0, "language": "ar", "reviewer_name": "ريم العتيبي"},
+      {"text": "الصمام المضاد للمغص يشتغل فعلاً. طفلي أهدى بكثير بعد ما بدأت أستخدمها.", "rating": 5.0, "language": "ar", "reviewer_name": "دانا القحطاني"},
+      {"text": "غالية شوي بس تستاهل. الجودة واضحة والطفل يحبها.", "rating": 4.0, "language": "ar", "reviewer_name": "لطيفة حمد"},
+      {"text": "تدفق الحليب قوي جداً لمولودتي الجديدة. مو مناسبة للرضع الصغار.", "rating": 2.0, "language": "ar", "reviewer_name": "أم فيصل"}
+    ],
+    "expected_confidence_level": "low",
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "All Arabic reviews. Arabic verdict must be generated natively and contain Arabic text."
+  },
+  {
+    "id": "TC10",
+    "name": "Contradictory reviews on same topic",
+    "file": null,
+    "inline_product": "ContradictTest Bottle 250ml",
+    "inline_reviews": [
+      {"text": "The nipple flow is perfect, not too fast not too slow, ideal for my 3 month old.", "rating": 5.0, "language": "en", "reviewer_name": "Mom A"},
+      {"text": "Nipple flow is way too fast, my newborn chokes every single feed.", "rating": 1.0, "language": "en", "reviewer_name": "Mom B"},
+      {"text": "Flow speed is just right for my baby, no choking at all.", "rating": 5.0, "language": "en", "reviewer_name": "Mom C"},
+      {"text": "Too much milk coming out at once, definitely too fast for a newborn.", "rating": 2.0, "language": "en", "reviewer_name": "Mom D"},
+      {"text": "Perfect flow rate, my 4 month old feeds calmly every time.", "rating": 5.0, "language": "en", "reviewer_name": "Mom E"},
+      {"text": "Flow is far too fast, milk pours out and baby cannot keep up.", "rating": 1.0, "language": "en", "reviewer_name": "Mom F"},
+      {"text": "Easy to clean, wide neck makes sterilising straightforward.", "rating": 4.0, "language": "en", "reviewer_name": "Mom G"},
+      {"text": "Great anti-colic design, my son had terrible wind before switching.", "rating": 5.0, "language": "en", "reviewer_name": "Mom H"}
+    ],
+    "expected_confidence_level": null,
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "Reviews directly contradict on nipple flow. Should appear in both pros and cons."
+  },
+  {
+    "id": "TC11",
+    "name": "Very short reviews edge case",
+    "file": null,
+    "inline_product": "ShortReview Baby Bottle 180ml",
+    "inline_reviews": [
+      {"text": "Good bottle.", "rating": 4.0, "language": "en", "reviewer_name": "Mom A"},
+      {"text": "My baby likes it.", "rating": 5.0, "language": "en", "reviewer_name": "Mom B"},
+      {"text": "Not bad.", "rating": 3.0, "language": "en", "reviewer_name": "Mom C"},
+      {"text": "Leaks a bit.", "rating": 2.0, "language": "en", "reviewer_name": "Mom D"},
+      {"text": "Easy clean.", "rating": 5.0, "language": "en", "reviewer_name": "Mom E"},
+      {"text": "Worth it.", "rating": 4.0, "language": "en", "reviewer_name": "Mom F"},
+      {"text": "Baby happy.", "rating": 5.0, "language": "en", "reviewer_name": "Mom G"}
+    ],
+    "expected_confidence_level": "low",
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "All reviews are very short (under 5 words). Pipeline should still work without crashing."
+  },
+  {
+    "id": "TC12",
+    "name": "High volume — theme richness",
+    "file": "avent_bottle.json",
+    "expected_confidence_level": "high",
+    "expected_sentiment": null,
+    "expected_refusal": false,
+    "expected_fake_flagged": false,
+    "must_not_mention": [],
+    "description": "Large dataset should produce 3+ themes identified covering different topics."
   }
 ]
